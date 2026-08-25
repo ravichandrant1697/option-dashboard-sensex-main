@@ -1,10 +1,33 @@
 {
   "date": "2026-08-25",
   "open": [],
-  "closedToday": [],
+  "closedToday": [
+    {
+      "PosId": 1787635392598,
+      "Timestamp": "2026-08-25 10:53:12",
+      "ExitTime": "2026-08-25 10:59:12",
+      "Horizon": "intraday",
+      "Expiry": "2026-08-27",
+      "Strategy": "Buy Call",
+      "Legs": "BUY 77300CE",
+      "Lots": 1,
+      "NetEntry": 314.6,
+      "NetExit": 282.95,
+      "Result": "LOSS",
+      "ExitReason": "STOP",
+      "GrossPnL": -633,
+      "Charges": 58.6,
+      "PnL": -691.6,
+      "ExitMode": "scalp",
+      "RR": 2,
+      "Confidence": 83,
+      "EntryBias": "Bullish",
+      "TrendAtEntry": "Up"
+    }
+  ],
   "biasStreak": {
-    "bias": "Bullish",
-    "count": 3
+    "bias": "Bearish",
+    "count": 2
   },
   "dayOpenSpot": 77341.59
 }
