@@ -1,10 +1,10 @@
 {
-  "date": "2026-09-04",
+  "date": "2026-09-07",
   "open": [],
   "closedToday": [],
   "biasStreak": {
-    "bias": "Bullish",
-    "count": 2
+    "bias": "Bearish",
+    "count": 1
   },
-  "dayOpenSpot": 76557.66
+  "dayOpenSpot": 76450.91
 }
