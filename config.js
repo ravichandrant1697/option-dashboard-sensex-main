@@ -18,6 +18,7 @@ const TUNING_FILE = "tuning.json";           // self-tuned parameters, written d
 // prompts (NIFTY or Stock, and the gap between strikes for spreads).
 const CONFIG = {
   instrumentKey: "BSE_INDEX|SENSEX",
+  instrumentName: "SENSEX",  // "Index or Stock" line of the Telegram alerts
   expiryDate: "2026-08-27", // auto-resolved at startup from the BSE
                             // instruments master (nearest WEEKLY expiry —
                             // SENSEX weeklies expire THURSDAY); EXPIRY_DATE
@@ -74,8 +75,13 @@ const RISK_REWARD = 2;
 // unreachable, which also let the cost-floor gate pass on a reward that
 // never existed. 20%/10% of net entry scales to ANY stock.
 const OI_STRONG_RATIO = 2.5;
-const SCALP_TARGET_PCT = 0.2;  // scalp target = 20% of |net entry|
-const SCALP_LOCK_PCT = 0.1;    // profit floor once seen = 10% of |net entry|
+// 2026-09-05 retune (same rules as the NIFTY bot): scalp target 30% of
+// |net entry| (stop = target / RISK_REWARD = 15%), and a three-rung profit-
+// lock LADDER — the highest rung the move has traded ABOVE is armed and a
+// pullback to it exits PROFIT_LOCK. Keep SCALP_LOCK_PCTS sorted ascending.
+const SCALP_TARGET_PCT = 0.3;  // scalp target = 30% of |net entry| (was 0.2)
+const SCALP_LOCK_PCTS = [0.08, 0.10, 0.125];
+const SCALP_LOCK_PCT = SCALP_LOCK_PCTS[0]; // first rung — kept for older callers
 
 // Naked long options (Buy Call / Buy Put). History: 0 wins in 8 trades,
 // −₹5,133 across both journals under the OLD gates. Re-enabled 2026-08-20
@@ -84,7 +90,19 @@ const SCALP_LOCK_PCT = 0.1;    // profit floor once seen = 10% of |net entry|
 // score-100 trigger — flip to true to block them structurally again.
 // Config-level (not tuning.json) because the tuner recomputes its
 // blocklist from post-regime data and would silently forget the block.
-const BLOCK_NAKED_LEGS = true;
+const BLOCK_NAKED_LEGS = false; // 2026-09-05: opened for the naked-only test week
+
+// NAKED-ONLY TEST WEEK (2026-09-05 → ~2026-09-12, same as the NIFTY bot):
+// when true, the ONLY tradeable structure is the single naked leg on the
+// bias side (Buy Call for Bullish, Buy Put for Bearish; Range = no trade).
+// Spread/condor/straddle code stays untouched — flip this back to false
+// (and BLOCK_NAKED_LEGS to true) to return to the previous behaviour. The
+// naked leg must still score NAKED_MIN_SCORE (100 = 2.5× OI dominance +
+// build-up breadth + CONFIRMED candle trend); weaker reads are journaled
+// as blocked signals. Naked legs are exempt from the tuner's
+// blockedStrategies while the test runs.
+const NAKED_ONLY = true;
+const NAKED_MIN_SCORE = 100;
 
 // Upstox NSE-options charge model (per executed ORDER — each leg is one
 // order, entry and exit are separate orders). Rates as of Oct 2024 revision.
@@ -197,7 +215,10 @@ module.exports = {
   OI_STRONG_RATIO,
   SCALP_TARGET_PCT,
   SCALP_LOCK_PCT,
+  SCALP_LOCK_PCTS,
   BLOCK_NAKED_LEGS,
+  NAKED_ONLY,
+  NAKED_MIN_SCORE,
   COSTS,
   MIN_EDGE_MULTIPLE,
   TUNING_REGIME_START,
