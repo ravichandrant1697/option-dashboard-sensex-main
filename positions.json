@@ -1,44 +1,33 @@
 {
   "date": "2026-09-15",
-  "open": [
+  "open": [],
+  "closedToday": [
     {
-      "id": 1789461945425,
-      "openedAt": "2026-09-15 14:15:45",
-      "openedAtMs": 1789461945425,
-      "strategy": "Buy Put",
-      "legs": [
-        {
-          "strike": 74300,
-          "type": "PE",
-          "side": "BUY",
-          "instrument_key": "BSE_FO|862237"
-        }
-      ],
-      "lots": 1,
-      "netEntry": 412.45,
-      "stopDist": 41.245000000000005,
-      "targetDist": 123.73499999999999,
-      "lockDist": 32.996,
-      "lockDists": [
-        32.996,
-        41.245000000000005,
-        51.55625
-      ],
-      "exitMode": "scalp",
-      "estCharges": 62.14,
-      "confidence": 100,
-      "entryBias": "Bearish",
-      "trendAtEntry": "Down",
-      "horizon": "intraday",
-      "product": "I",
-      "expiry": "2026-09-17",
-      "_lockLevel": 51.55625
+      "PosId": 1789461945425,
+      "Timestamp": "2026-09-15 14:15:45",
+      "ExitTime": "2026-09-15 14:51:03",
+      "Horizon": "intraday",
+      "Expiry": "2026-09-17",
+      "Strategy": "Buy Put",
+      "Legs": "BUY 74300PE",
+      "Lots": 1,
+      "NetEntry": 412.45,
+      "NetExit": 451.95,
+      "Result": "WIN",
+      "ExitReason": "PROFIT_LOCK",
+      "GrossPnL": 790,
+      "Charges": 62.14,
+      "PnL": 727.86,
+      "ExitMode": "scalp",
+      "RR": 3,
+      "Confidence": 100,
+      "EntryBias": "Bearish",
+      "TrendAtEntry": "Down"
     }
   ],
-  "closedToday": [],
   "biasStreak": {
     "bias": "Bearish",
-    "count": 87
+    "count": 90
   },
   "dayOpenSpot": 980.4,
   "dayExtremes": {
