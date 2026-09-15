@@ -17,17 +17,24 @@ const TUNING_FILE = "tuning.json";           // self-tuned parameters, written d
 // Runtime config — instrumentKey and strikeDiff are set by the startup
 // prompts (NIFTY or Stock, and the gap between strikes for spreads).
 const CONFIG = {
-  instrumentKey: "NSE_EQ|INE062A01020",
-  instrumentName: "SBIN",  // "Index or Stock" line of the Telegram alerts
-  expiryDate: "2026-08-25", // auto-resolved at startup from the instruments
-                            // master (nearest expiry for the underlying);
-                            // EXPIRY_DATE env or the live-mode prompt pins it
-  futuresKey: "",           // near-month FUTURES of the underlying — the
-                            // futures-buildup confirmation gate. Auto-resolved
-                            // at startup; FUTURES_KEY env pins it. Empty =
-                            // gate inactive.
-  strikeRange: 100,         // analyze ATM ± this many points
-  strikeDiff: 10,           // spread width: sell leg = ATM ± strikeDiff (asked at startup)
+  instrumentKey: "BSE_INDEX|SENSEX",
+  instrumentName: "SENSEX",  // "Index or Stock" line of the Telegram alerts
+  expiryDate: "2026-08-27", // auto-resolved at startup from the BSE
+                            // instruments master (nearest WEEKLY expiry —
+                            // SENSEX weeklies expire THURSDAY); EXPIRY_DATE
+                            // env or the live-mode prompt pins it
+  futuresKey: "",           // near-month SENSEX FUTURES (BSE) — feeds the
+                            // futures-buildup confirmation gate AND, because
+                            // an index trades no volume, the VWAP/volume-surge
+                            // gates (signals.js falls back to futures candles).
+                            // CAUTION: BSE index futures are far thinner than
+                            // NSE — watch the FutBuildup/VolSurge columns for
+                            // noise before trusting those gates here.
+                            // Auto-resolved at startup; FUTURES_KEY env pins
+                            // it. Empty = those gates inactive.
+  strikeRange: 2000,        // analyze ATM ± this many points (SENSEX ~80k,
+                            // 100-pt strikes → same ~40-strike window as NIFTY)
+  strikeDiff: 100,          // spread width: sell leg = ATM ± strikeDiff (asked at startup)
   pollMs: 180000,           // poll every 3 min — Upstox refreshes OI on that cadence,                 // so faster polls just re-read stale OI against price noise
   portfolioRefreshMs: 15 * 60000, // snapshot long-term holdings every 15 min
   positionsRefreshMs: 5 * 60000,  // snapshot broker F&O positions every 5 min
@@ -38,7 +45,8 @@ const CONFIG = {
 };
 
 const CAPITAL = 50000;      // trading capital in ₹
-const LOT_SIZE = 750;        // contract quantity per lot
+const LOT_SIZE = 20;        // SENSEX contract quantity per lot — the startup
+                            // resolver warns loudly if the exchange disagrees
 const MAX_LOTS = 1;         // hard cap per trade — risk sizing never exceeds this
 
 // Risk model: risk up to 10% of capital per trade. (2% = ₹1,000 can never
@@ -102,10 +110,10 @@ const BLOCK_NAKED_LEGS = false; // 2026-09-05: opened for the naked-only test we
 const NAKED_ONLY = true;
 const NAKED_MIN_SCORE = 100;
 // Confidence floor for the naked leg (2026-09-11) — used INSTEAD of the
-// tuner's RULES.minConfidence override while NAKED_ONLY runs. THIS bot's
+// tuner's RULES.minConfidence override while NAKED_ONLY runs. The SBIN
 // tuner had raised minConfidence to 90 from 13 spread-era trades, which
-// turned every conf-83 naked read (41 Buy Call setups on 9–10 Sep) into a
-// silent NO TRADE (no Blocked reason). Same value as RULES.minConfidence.
+// turned every conf-83 naked read into a silent NO TRADE (no Blocked
+// reason in the sheet). Same value as RULES.minConfidence's default.
 const NAKED_MIN_CONFIDENCE = 70;
 
 // Upstox NSE-options charge model (per executed ORDER — each leg is one
@@ -116,7 +124,9 @@ const NAKED_MIN_CONFIDENCE = 70;
 const COSTS = {
   brokeragePerOrder: 20,  // flat per executed order
   sttSell: 0.001,         // 0.1% of premium turnover, SELL orders only
-  nseTxn: 0.0003503,      // 0.03503% of premium turnover, both sides
+  nseTxn: 0.000325,       // exchange txn: BSE index-options rate ~0.0325% of
+                          // premium turnover, both sides (key name kept for
+                          // shared pricing.js; verify against a contract note)
   sebiFee: 0.000001,      // ₹10/crore, both sides
   ipft: 0.000005,         // ₹50/crore, both sides
   stampBuy: 0.00003,      // 0.003% of premium turnover, BUY orders only
@@ -137,7 +147,7 @@ const MIN_EDGE_MULTIPLE = 3;
 // persistence 3, day-open gate) — the Aug 18–20 SBIN trades measured the
 // NIFTY-calibrated policy and are not evidence for this one.
 // 2026-09-11: moved to the naked-only start — spread trades are not
-// evidence for the naked policy (they set this bot's minConfidence to 90).
+// evidence for the naked policy (they set SBIN's minConfidence to 90).
 const TUNING_REGIME_START = "2026-09-05";
 
 const RULES = {
@@ -160,10 +170,13 @@ const RULES = {
   // extremeRetestPct (put bought at support — 9 Sep NIFTY 12:04, 9 pts
   // above the low: −₹1,143), and a Bullish entry symmetrically under an old
   // day high (25 Aug SENSEX 11:59: −₹679). A fresh break passes. In replay
-  // this was the single biggest lever (OFF −₹1,475 → ON +₹356 over 14
-  // days) but on 2–4 events — 0.10% is the middle of the range that held.
+  // this was the single biggest lever (OFF −₹1,475 → ON +₹356 at 0.05–0.10%,
+  // +₹1,276 at 0.15–0.25%) but on 2–4 events. 2026-09-15: 0.10 → 0.15% —
+  // the 11 Sep SBIN 13:47/13:56 puts were bought 0.11–0.13% above the day
+  // low (the gate had just blocked the same setup at 0.02–0.09%) and lost
+  // ₹1.1–1.5k each; 0.15% blocks them and sits inside the replay plateau.
   // 0 = off.
-  extremeRetestPct: 0.001,
+  extremeRetestPct: 0.0015,
   extremeRetestAgeMin: 30,
   // Entry-side persistence: the CURRENT bias must have held for this many
   // consecutive polls (including this one) before any entry is allowed.
