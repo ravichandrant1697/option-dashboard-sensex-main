@@ -1,39 +1,16 @@
 {
-  "date": "2026-09-17",
+  "date": "2026-09-18",
   "open": [],
-  "closedToday": [
-    {
-      "PosId": 1789627151452,
-      "Timestamp": "2026-09-17 12:09:11",
-      "ExitTime": "2026-09-17 12:54:39",
-      "Horizon": "intraday",
-      "Expiry": "2026-09-24",
-      "Strategy": "Buy Call",
-      "Legs": "BUY 74600CE",
-      "Lots": 1,
-      "NetEntry": 588.6,
-      "NetExit": 571.1,
-      "Result": "LOSS",
-      "ExitReason": "TIME_STOP",
-      "GrossPnL": -350,
-      "Charges": 68.52,
-      "PnL": -418.52,
-      "ExitMode": "scalp",
-      "RR": 3,
-      "Confidence": 83,
-      "EntryBias": "Bullish",
-      "TrendAtEntry": "Up"
-    }
-  ],
+  "closedToday": [],
   "biasStreak": {
     "bias": "Range",
-    "count": 42
+    "count": 3
   },
-  "dayOpenSpot": 74247.87,
+  "dayOpenSpot": 74511.89,
   "dayExtremes": {
-    "low": 74236.91,
-    "lowTs": 1789623729347,
-    "high": 74673.54,
-    "highTs": 1789628050121
+    "low": 74511.89,
+    "lowTs": 1789716080810,
+    "high": 74522,
+    "highTs": 1789716442895
   }
 }
