@@ -1,49 +1,39 @@
 {
   "date": "2026-09-21",
-  "open": [
+  "open": [],
+  "closedToday": [
     {
-      "id": 1789972471192,
-      "openedAt": "2026-09-21 12:04:31",
-      "openedAtMs": 1789972471192,
-      "strategy": "Buy Call",
-      "legs": [
-        {
-          "strike": 74800,
-          "type": "CE",
-          "side": "BUY",
-          "instrument_key": "BSE_FO|839319"
-        }
-      ],
-      "lots": 1,
-      "netEntry": 366.6,
-      "stopDist": 36.660000000000004,
-      "targetDist": 109.98,
-      "lockDist": 29.328000000000003,
-      "lockDists": [
-        29.328000000000003,
-        36.660000000000004,
-        45.825
-      ],
-      "exitMode": "scalp",
-      "estCharges": 60.48,
-      "confidence": 100,
-      "entryBias": "Bullish",
-      "trendAtEntry": "Up",
-      "horizon": "intraday",
-      "product": "I",
-      "expiry": "2026-09-24"
+      "PosId": 1789972471192,
+      "Timestamp": "2026-09-21 12:04:31",
+      "ExitTime": "2026-09-21 14:44:08",
+      "Horizon": "intraday",
+      "Expiry": "2026-09-24",
+      "Strategy": "Buy Call",
+      "Legs": "BUY 74800CE",
+      "Lots": 1,
+      "NetEntry": 366.6,
+      "NetExit": 403.25,
+      "Result": "WIN",
+      "ExitReason": "PROFIT_LOCK",
+      "GrossPnL": 733,
+      "Charges": 60.48,
+      "PnL": 672.52,
+      "ExitMode": "scalp",
+      "RR": 3,
+      "Confidence": 100,
+      "EntryBias": "Bullish",
+      "TrendAtEntry": "Up"
     }
   ],
-  "closedToday": [],
   "biasStreak": {
     "bias": "Bullish",
-    "count": 25
+    "count": 29
   },
   "dayOpenSpot": 74688.79,
   "dayExtremes": {
     "low": 74609.8,
     "lowTs": 1789967069051,
-    "high": 74856.33,
-    "highTs": 1789972290196
+    "high": 74950.95,
+    "highTs": 1789982184516
   }
 }
