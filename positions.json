@@ -1,39 +1,16 @@
 {
-  "date": "2026-09-21",
+  "date": "2026-09-22",
   "open": [],
-  "closedToday": [
-    {
-      "PosId": 1789972471192,
-      "Timestamp": "2026-09-21 12:04:31",
-      "ExitTime": "2026-09-21 14:44:08",
-      "Horizon": "intraday",
-      "Expiry": "2026-09-24",
-      "Strategy": "Buy Call",
-      "Legs": "BUY 74800CE",
-      "Lots": 1,
-      "NetEntry": 366.6,
-      "NetExit": 403.25,
-      "Result": "WIN",
-      "ExitReason": "PROFIT_LOCK",
-      "GrossPnL": 733,
-      "Charges": 60.48,
-      "PnL": 672.52,
-      "ExitMode": "scalp",
-      "RR": 3,
-      "Confidence": 100,
-      "EntryBias": "Bullish",
-      "TrendAtEntry": "Up"
-    }
-  ],
+  "closedToday": [],
   "biasStreak": {
-    "bias": "Bullish",
-    "count": 42
+    "bias": "Range",
+    "count": 2
   },
-  "dayOpenSpot": 74688.79,
+  "dayOpenSpot": 74957.84,
   "dayExtremes": {
-    "low": 74609.8,
-    "lowTs": 1789967069051,
-    "high": 74950.95,
-    "highTs": 1789982184516
+    "low": 74943.32,
+    "lowTs": 1790048942218,
+    "high": 74957.84,
+    "highTs": 1790048760596
   }
 }
