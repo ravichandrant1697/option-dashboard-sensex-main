@@ -31,7 +31,8 @@
       "trendAtEntry": "Down",
       "horizon": "intraday",
       "product": "I",
-      "expiry": "2026-10-01"
+      "expiry": "2026-10-01",
+      "_lockLevel": 46.75625
     }
   ],
   "closedToday": [
@@ -60,12 +61,12 @@
   ],
   "biasStreak": {
     "bias": "Bearish",
-    "count": 97
+    "count": 100
   },
   "dayOpenSpot": 73585.81,
   "dayExtremes": {
-    "low": 72811.9,
-    "lowTs": 1790585638517,
+    "low": 72732.84,
+    "lowTs": 1790586538201,
     "high": 73585.81,
     "highTs": 1790567108951
   }
