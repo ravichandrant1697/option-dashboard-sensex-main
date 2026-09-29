@@ -33,7 +33,7 @@
  *   backtest.js    metrics over collected trades
  *   prompts.js     interactive startup wizard (live mode)
  *
- * SETUP:  npm install axios xlsx dotenv    (ws optional, for streaming)
+ * SETUP:  npm install axios xlsx dotenv    (`ws` optional, for streaming)
  *
  * RUN:
  *   node option-dashboard.js             → asks NIFTY/Stock + strike diff,
@@ -57,11 +57,8 @@
  *   DEBUG_CHAIN=1  optional — dump the full option-chain JSON every tick
  *   DEBUG_SIGNALS=1 optional — per-strike build-up classification trace
  *   LIVE_TRADING=1 optional — enable REAL orders (also needs typed YES)
- *   UPSTOX_WS_URL  optional — JSON-relay stream URL (needs npm install ws)
+ *   UPSTOX_WS_URL  optional — JSON-relay stream URL (needs `npm install ws`)
  *   INSTRUMENT_KEY / EXPIRY_DATE / STRIKE_DIFF — headless config (tick mode)
- *   FUTURES_KEY    optional — near-month futures key for the build-up gate
- *                  (expiry and futures key otherwise auto-resolve at startup
- *                  from the NSE instruments master)
  *   AUTO_EXIT=1    optional — live loop exits once the trading day ends
  *   SESSION_END    optional — "HH:MM" IST; session mode exits past this time
  *
@@ -71,37 +68,30 @@
  * every runtime decision uses live API response data, never file contents.
  */
 const { CONFIG, applyEnvConfig } = require("./config");
-const { istTimestamp } = require("./clock");
 const { activateHorizon } = require("./horizons");
-const { validateToken } = require("./upstox-api");
-const { notify } = require("./notify");
-
-
 const { loadWorkbookCache } = require("./workbook");
 const { initState } = require("./state");
 const { loadTuning, runTuning } = require("./tuning");
-
-// Contract auto-resolution is an ENHANCEMENT — a partial deploy that
-// misses instruments.js must degrade to configured values, not kill the
-// whole unattended session at startup (2026-08-21: a missing module cost
-// the entire morning run on Actions).
-let autoResolveContracts = async () => {};
-try {
-  ({ autoResolveContracts } = require("./instruments"));
-} catch {
-  console.warn("⚠️ instruments.js not found — contract auto-resolution disabled, using configured expiry/futures key");
-}
 const { connectStream } = require("./stream");
 const { run, fastExitCheck } = require("./engine");
 const { runBacktest } = require("./backtest");
 const { setupInstrument } = require("./prompts");
+
+// Guarded like prompts.js — a deploy that misses instruments.js must not
+// crash the headless modes; the engine then just keeps configured values.
+let autoResolveContracts = async () => {};
+try {
+  ({ autoResolveContracts } = require("./instruments"));
+} catch {
+  console.warn("⚠️ instruments.js not found — expiry/futures auto-resolution disabled");
+}
 
 const mode = (process.argv[2] || "").toLowerCase();
 
 console.log("======================================");
 console.log("Option Dashboard Started");
 console.log("Mode :", mode || "live");
-console.log("Time :", istTimestamp(), "IST"); // CI machines run UTC — log IST
+console.log("Time :", new Date().toLocaleString());
 console.log("======================================");
 
 if (mode === "backtest") {
@@ -121,7 +111,11 @@ if (mode === "backtest") {
     applyEnvConfig();
     activateHorizon(process.env.HORIZON);
 
-    console.log("Resolving contracts (expiry + futures key)...");
+    // Roll expiry to the nearest contract and resolve the near-month
+    // futures key (feeds the futures-buildup + VWAP/volume gates). Session
+    // mode previously skipped this — the wizard-only call left futuresKey
+    // empty and the expiry stale in CI, so the gates never fired.
+    console.log("Resolving contracts (expiry / futures key)...");
     await autoResolveContracts();
 
     console.log("Loading workbook cache...");
@@ -136,19 +130,41 @@ if (mode === "backtest") {
     console.log("Connecting WebSocket...");
     connectStream();
 
-    console.log("Running first cycle...");
-    await run();
-
-    console.log(`Polling every ${CONFIG.pollMs / 1000} seconds...`);
-
-    setInterval(async () => {
-      console.log("--------------------------------");
-      console.log("Running next cycle...");
-      await run();
-    }, CONFIG.pollMs);
+    // Clock-aligned polling (2026-09-28): polls land on the 09:15 + k×3 min
+    // grid (09:15:00, 09:18:00 …) instead of "every 3 min from whenever the
+    // process booted". Started before the open → the first API call is at
+    // 09:15:00 sharp (the workflow boots the engine ~2 min early so contract
+    // resolution, the workbook load and the websocket are done by then).
+    // Started mid-session → poll now, then join the grid. setTimeout is
+    // re-armed after each poll, so a slow poll never stacks two cycles.
+    {
+      const { msUntilNextPoll, isBeforeOpen } = require("./clock");
+      const fmt = ms => `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+      const scheduleNext = () => {
+        const ms = msUntilNextPoll(CONFIG.pollMs);
+        setTimeout(async () => {
+          console.log("--------------------------------");
+          console.log("Running next cycle...");
+          try { await run(); } catch (e) { console.error("Cycle failed:", e.message); }
+          scheduleNext();
+        }, ms);
+        return ms;
+      };
+      if (isBeforeOpen()) {
+        console.log(`Before the open — first cycle at 09:15:00 IST (in ${fmt(msUntilNextPoll(CONFIG.pollMs))})`);
+        scheduleNext();
+      } else {
+        console.log("Running first cycle...");
+        await run();
+        console.log(`Next cycle on the 3-min grid in ${fmt(scheduleNext())}`);
+      }
+    }
 
     // Between-poll exit guard: price-only, fires only while a position is
     // open (engine.fastExitCheck). Entries stay on the 3-min chain poll.
+    // Same wiring as the SBIN/SENSEX bots — this copy had the function
+    // but never scheduled it, so STOP/TARGET/PROFIT_LOCK were only ever
+    // evaluated every 3 minutes.
     if (CONFIG.fastExitMs) {
       console.log(`Fast exit check every ${CONFIG.fastExitMs / 1000}s (while a position is open)`);
       setInterval(() => {
@@ -168,7 +184,8 @@ if (mode === "backtest") {
     applyEnvConfig();
     activateHorizon(process.env.HORIZON);
 
-    console.log("Resolving contracts (expiry + futures key)...");
+    // Same contract resolution as session mode — see the comment there.
+    console.log("Resolving contracts (expiry / futures key)...");
     await autoResolveContracts();
 
     console.log("Loading workbook...");
@@ -206,19 +223,41 @@ if (mode === "backtest") {
     console.log("Loading tuning...");
     loadTuning();
 
-    console.log("Running first cycle...");
-    await run();
-
-    console.log(`Polling every ${CONFIG.pollMs / 1000} seconds...`);
-
-    setInterval(async () => {
-      console.log("--------------------------------");
-      console.log("Running next cycle...");
-      await run();
-    }, CONFIG.pollMs);
+    // Clock-aligned polling (2026-09-28): polls land on the 09:15 + k×3 min
+    // grid (09:15:00, 09:18:00 …) instead of "every 3 min from whenever the
+    // process booted". Started before the open → the first API call is at
+    // 09:15:00 sharp (the workflow boots the engine ~2 min early so contract
+    // resolution, the workbook load and the websocket are done by then).
+    // Started mid-session → poll now, then join the grid. setTimeout is
+    // re-armed after each poll, so a slow poll never stacks two cycles.
+    {
+      const { msUntilNextPoll, isBeforeOpen } = require("./clock");
+      const fmt = ms => `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+      const scheduleNext = () => {
+        const ms = msUntilNextPoll(CONFIG.pollMs);
+        setTimeout(async () => {
+          console.log("--------------------------------");
+          console.log("Running next cycle...");
+          try { await run(); } catch (e) { console.error("Cycle failed:", e.message); }
+          scheduleNext();
+        }, ms);
+        return ms;
+      };
+      if (isBeforeOpen()) {
+        console.log(`Before the open — first cycle at 09:15:00 IST (in ${fmt(msUntilNextPoll(CONFIG.pollMs))})`);
+        scheduleNext();
+      } else {
+        console.log("Running first cycle...");
+        await run();
+        console.log(`Next cycle on the 3-min grid in ${fmt(scheduleNext())}`);
+      }
+    }
 
     // Between-poll exit guard: price-only, fires only while a position is
     // open (engine.fastExitCheck). Entries stay on the 3-min chain poll.
+    // Same wiring as the SBIN/SENSEX bots — this copy had the function
+    // but never scheduled it, so STOP/TARGET/PROFIT_LOCK were only ever
+    // evaluated every 3 minutes.
     if (CONFIG.fastExitMs) {
       console.log(`Fast exit check every ${CONFIG.fastExitMs / 1000}s (while a position is open)`);
       setInterval(() => {
