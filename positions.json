@@ -1,15 +1,38 @@
 {
   "date": "2026-10-01",
   "open": [],
-  "closedToday": [],
+  "closedToday": [
+    {
+      "PosId": 1790837821876,
+      "Timestamp": "2026-10-01 12:27:01",
+      "ExitTime": "2026-10-01 12:30:01",
+      "Horizon": "intraday",
+      "Expiry": "2026-10-08",
+      "Strategy": "Buy Put",
+      "Legs": "BUY 72100PE",
+      "Lots": 1,
+      "NetEntry": 501.05,
+      "NetExit": 529,
+      "Result": "WIN",
+      "ExitReason": "PROFIT_LOCK",
+      "GrossPnL": 559,
+      "Charges": 65.35,
+      "PnL": 493.65,
+      "ExitMode": "scalp",
+      "RR": 3,
+      "Confidence": 83,
+      "EntryBias": "Bearish",
+      "TrendAtEntry": "Down"
+    }
+  ],
   "biasStreak": {
     "bias": "Bearish",
-    "count": 10
+    "count": 14
   },
   "dayOpenSpot": 72221.89,
   "dayExtremes": {
-    "low": 72220.15,
-    "lowTs": 1790836920635,
+    "low": 72054.39,
+    "lowTs": 1790838001771,
     "high": 72542.57,
     "highTs": 1790829361491
   }
