@@ -1,8 +1,9 @@
 {
-  "lastTuneDate": "2026-10-05",
+  "lastTuneDate": "2026-10-06",
   "minConfidence": null,
   "blockedStrategies": [
-    "Buy Put"
+    "Buy Put",
+    "Buy Call"
   ],
   "requireTrendMatch": false
 }
