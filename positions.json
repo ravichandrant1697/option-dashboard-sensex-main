@@ -27,13 +27,13 @@
   ],
   "biasStreak": {
     "bias": "Bullish",
-    "count": 25
+    "count": 28
   },
   "dayOpenSpot": 72530.6,
   "dayExtremes": {
     "low": 72425.14,
     "lowTs": 1791258660969,
-    "high": 72718.63,
-    "highTs": 1791260821430
+    "high": 72728.4,
+    "highTs": 1791263341897
   }
 }
