@@ -182,6 +182,14 @@ const RULES = {
   freshBreakOnly: true,
   freshBreakMaxRun: 3,
   freshBreakMaxMovePct: 0.0015,
+  // Minimum break depth (2026-10-07): the fresh break must clear the prior
+  // day extreme by this fraction of spot (0.0003 = 0.03 % ≈ SBIN 0.3 /
+  // NIFTY 7 / SENSEX 22 pts). Replay 09-11→10-07 (analysis-scripts/
+  // minbreak.js): all 7 stops under the live rule were breaks < 0.03 %
+  // (16 trades −₹3,970); breaks ≥ 0.03 % were 10/10 wins +₹11.9k; sequential
+  // net +₹7.9k/26 → +₹10.4k/12, 83 % win. 10-07 losses: SENSEX 10 pts
+  // (0.013 %), SBIN 0.15 pts (0.016 %) — both one-tick wicks. 0 = off.
+  freshBreakMinPct: 0.0003,
   // Scalp time stop (2026-09-11): a scalp/naked position that has armed NO
   // profit-lock rung within this many minutes exits TIME_STOP — Range drift
   // is not a SIGNAL_CHANGE and intraday has no maxHoldDays, so the 10 Sep
