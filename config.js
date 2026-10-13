@@ -97,6 +97,20 @@ const SCALP_LOCK_PCTS = [0.08, 0.10, 0.125];
 // stalls short of the 8 % rung still banks instead of round-tripping to
 // the stop. 0 = off.
 const SCALP_LOCK_POINTS = 30;
+
+// Trailing profit floor (2026-10-12, user directive "trailing SL, 8 % manner"):
+// once the move has traded ABOVE SCALP_TRAIL_ARM_PCT of |net entry|, the
+// floor = peak move − SCALP_TRAIL_PCT of |net entry| and ratchets up with
+// every new peak; a pullback to/below the floor exits PROFIT_LOCK (ticks
+// still need the 5-s confirmation in stream.js). While on it REPLACES the
+// rung ladder above once armed (the rungs stay in the alert as reference
+// levels); before arming nothing changes — stop, target and the 45-min
+// TIME_STOP work as before. NIFTY tick replay 10-08..10-12 (trend days
+// only, analysis-scripts/tick-replay): +34 % / +42 % vs the ladder on the
+// two larger entry sets, −₹494 on the 3 live trades (a quick spike banks
+// less, a runner banks more). 0 = off → ladder exactly as before.
+const SCALP_TRAIL_ARM_PCT = 0.08;
+const SCALP_TRAIL_PCT = 0.05;
 const SCALP_LOCK_PCT = SCALP_LOCK_PCTS[0]; // first % rung — kept for older callers
 
 // Naked long options (Buy Call / Buy Put). History: 0 wins in 8 trades,
@@ -190,6 +204,40 @@ const RULES = {
   // net +₹7.9k/26 → +₹10.4k/12, 83 % win. 10-07 losses: SENSEX 10 pts
   // (0.013 %), SBIN 0.15 pts (0.016 %) — both one-tick wicks. 0 = off.
   freshBreakMinPct: 0.0003,
+  // Tick entries (2026-10-07, user: "no wait"): between the 3-min chain
+  // polls, every streamed spot tick re-runs the trade plan (same gates,
+  // same bias/chain as the last poll, spot = the tick) and opens the
+  // position the moment a fresh break passes — instead of buying the
+  // aftermath at the next poll (10-07 13:12 @144 after a 166 print at
+  // 13:09–13:12). Needs the WebSocket; polling-only sessions are unchanged.
+  // tickEntryMinGapMs throttles the re-plan; false = poll entries only.
+  tickEntry: true,
+  tickEntryMinGapMs: 2000,
+  // Tick journal (2026-10-07, user: backtest the tick-by-tick process):
+  // every streamed tick → ticks-<date>-<HHMM>.csv, every decision →
+  // events-<date>-<HHMM>.csv (ticklog.js); both go to Telegram at the end
+  // of each run. tickJournalStrikes = how many strikes either side of ATM
+  // (CE + PE) are streamed purely for the journal, so a replay has option
+  // prices for the strikes the bot could have chosen, not only the ones it
+  // did. 2 → ATM ± 2 = 10 option keys + index + futures + plan/position legs.
+  tickJournal: true,
+  tickJournalStrikes: 2,
+  // Stream-fed analysis (2026-10-07, user: chain / candles / futures via the
+  // WebSocket): the analysis window (ATM ± strikeRange, CE + PE) plus index
+  // and futures are streamed; every tick updates a live copy of the last
+  // REST chain (ltp, oi, iv, greeks, volume), 5-min candles are built from
+  // index/futures ticks (volume = vtt deltas), and the futures build-up
+  // reads the futures tick. The 3-min cycle then analyses the LIVE chain
+  // (no REST) whenever the index tick is fresh, and between cycles the
+  // bias is re-computed every streamAnalysisMs so tick entries see it the
+  // moment the exchange publishes new OI. REST stays as the seed (one chain
+  // call at startup and every streamReseedMs for prev_oi / close_price /
+  // new strikes) and as the fallback whenever ticks go stale. The Dashboard
+  // row and the day-extreme bookkeeping stay on the 3-min grid. false or
+  // STREAM_ANALYSIS=0 = the REST path exactly as before.
+  streamAnalysis: true,
+  streamAnalysisMs: 5000,
+  streamReseedMs: 30 * 60000,
   // Scalp time stop (2026-09-11): a scalp/naked position that has armed NO
   // profit-lock rung within this many minutes exits TIME_STOP — Range drift
   // is not a SIGNAL_CHANGE and intraday has no maxHoldDays, so the 10 Sep
@@ -292,6 +340,8 @@ module.exports = {
   SCALP_LOCK_PCT,
   SCALP_LOCK_PCTS,
   SCALP_LOCK_POINTS,
+  SCALP_TRAIL_ARM_PCT,
+  SCALP_TRAIL_PCT,
   BLOCK_NAKED_LEGS,
   NAKED_ONLY,
   NAKED_MIN_SCORE,

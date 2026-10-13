@@ -12,7 +12,9 @@ const {
   BLOCK_NAKED_LEGS,
   NAKED_ONLY,
   NAKED_MIN_SCORE,
-  NAKED_MIN_CONFIDENCE
+  NAKED_MIN_CONFIDENCE,
+  SCALP_TRAIL_ARM_PCT,
+  SCALP_TRAIL_PCT
 } = require("./config");
 const { daysUntil, istTimestamp, nowIST } = require("./clock");
 const { getActiveHorizon } = require("./horizons");
@@ -105,8 +107,13 @@ function levelLines(pos) {
   const rungs = pos.lockDists ?? (pos.lockDist != null ? [pos.lockDist] : []);
   const lockLine = i =>
     `Profit Lock${i + 1} : ${rungs[i] != null ? (pos.netEntry + rungs[i]).toFixed(2) : "—"}`;
+  const trailLine =
+    SCALP_TRAIL_PCT > 0 && rungs.length
+      ? [`Trailing : arms above +${(SCALP_TRAIL_ARM_PCT * 100).toFixed(0)}% (${(pos.netEntry + SCALP_TRAIL_ARM_PCT * Math.abs(pos.netEntry)).toFixed(2)}), floor = peak − ${(SCALP_TRAIL_PCT * 100).toFixed(0)}% of entry`]
+      : [];
   return [
     ...Array.from({ length: Math.max(3, rungs.length) }, (_, i) => lockLine(i)),
+    ...trailLine,
     `Stop Loss : ${(pos.netEntry - pos.stopDist).toFixed(2)}`,
     `Target : ${pos.targetDist != null ? (pos.netEntry + pos.targetDist).toFixed(2) : "Signal reversal"}`
   ].join("\n");
@@ -117,7 +124,7 @@ function statusLabel(pos, reason) {
   if (reason === "PROFIT_LOCK") {
     const rungs = pos.lockDists ?? [];
     const idx = rungs.indexOf(pos._lockLevel);
-    return idx >= 0 ? `Profit Lock${idx + 1}` : "Profit Lock";
+    return idx >= 0 ? `Profit Lock${idx + 1}` : SCALP_TRAIL_PCT > 0 ? "Trailing Lock" : "Profit Lock";
   }
   return {
     TARGET: "Target",
@@ -560,6 +567,8 @@ async function openPosition(result, plan) {
   // Stream the legs for tick-level exits (lazy require: stream ↔ trade
   // would otherwise be a load-order cycle). Stream down → no-op.
   try { require("./stream").subscribe(pos.legs.map(l => l.instrument_key)); } catch { /* stream optional */ }
+  // Tick journal event (module optional).
+  try { require("./ticklog").logEvent("entry", { id: pos.id, legs: legsSummary(pos.legs), netEntry: pos.netEntry, stopDist: pos.stopDist, targetDist: pos.targetDist, lockDists: pos.lockDists, exitMode: pos.exitMode, spot: result.spot, bias: result.bias, confidence: pos.confidence }); } catch { /* journal off */ }
 
   // Telegram entry alert — labeled block (see alertHeader/levelLines).
   // Levels are NET-PREMIUM prices, same convention as the sheet.
@@ -624,6 +633,7 @@ async function closePosition(pos, netNow, outcome, reason) {
   state.open = state.open.filter(p => p.id !== pos.id);
   state.closedToday.push(trade);
   try { require("./stream").unsubscribe(pos.legs.map(l => l.instrument_key)); } catch { /* stream optional */ }
+  try { require("./ticklog").logEvent("exit", { id: pos.id, legs: legsSummary(pos.legs), reason, outcome, netEntry: pos.netEntry, netExit: netNow, pnl: trade.PnL, gross: trade.GrossPnL, charges: trade.Charges, lockLevel: pos._lockLevel ?? null }); } catch { /* journal off */ }
 
   // Update the entry's OPEN row in place; append only if it is missing.
   const openRow = SHEETS.Trades.find(r => r.PosId === pos.id);
